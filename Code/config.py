@@ -15,4 +15,4 @@ IMG_DIR = r"/home/christian/CBIS-DDSM/Dataset/CBIS-DDSM"
 # Training parameters
 BATCH_SIZE = 32
 LEARNING_RATE = 0.0001
-NUM_EPOCHS = 200
+NUM_EPOCHS = 1000

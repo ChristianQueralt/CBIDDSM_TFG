@@ -6,7 +6,8 @@ import random
 # Define transformations for training data (includes augmentations)
 train_transforms = v2.Compose([
     v2.ToImage(),  # Ensure input is a tensor image
-    v2.Resize((224, 224), antialias=True),  # Resize images to 224x224
+    v2.Resize((128, 128), antialias=True),
+    #v2.Resize((224, 224), antialias=True),# Resize images to 224x224
 
     # Geometric transformations
     v2.RandomHorizontalFlip(p=0.5),
@@ -35,6 +36,8 @@ train_transforms = v2.Compose([
 # Define transformations for validation and test data (no augmentation)
 test_transforms = v2.Compose([
     v2.ToImage(),
-    v2.Resize((224, 224), antialias=True),
+    #v2.Resize((224, 224), antialias=True),# Resize images to 224x224
+    v2.Resize((128, 128), antialias=True),
+
     v2.ToDtype(torch.float32, scale=True),
 ])

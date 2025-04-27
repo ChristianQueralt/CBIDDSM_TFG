@@ -10,6 +10,9 @@ from config import TEST_CSV, IMG_DIR, BATCH_SIZE, DEVICE
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, roc_curve, auc, confusion_matrix
 import time
 import os
+from BreastDensityJSONDataset import BreastDensityJSONDataset
+
+
 
 def evaluate_model(model, save_dir, train_time):
     """
@@ -130,6 +133,95 @@ def evaluate_model(model, save_dir, train_time):
 
     # Save Confusion Matrix
     conf_matrix_path = os.path.join(save_dir, "confusion_matrix.png")
+    plt.savefig(conf_matrix_path)
+    plt.close()
+
+    print(f"\nConfusion Matrix saved at: {conf_matrix_path}")
+
+
+def evaluate_model_on_json(model, json_path, save_dir, train_time):
+    # Start evaluation with breast density JSON dataset
+    print("\nStarting Evaluation with Breast Density JSON Dataset...")
+
+    # Load dataset from JSON
+    test_dataset = BreastDensityJSONDataset(json_path=json_path, transform=test_transforms)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+
+    # Set model to evaluation mode
+    model.to(DEVICE)
+    model.eval()
+
+    # Store predictions, true labels and probability scores
+    y_true, y_pred, y_probas = [], [], []
+
+    start_time = time.time()
+
+    # Inference loop without gradient computation
+    with torch.no_grad():
+        for batch in test_loader:
+            images, labels = batch["image"].to(DEVICE), batch["label"].to(DEVICE)
+            outputs = model(images)
+            probabilities = torch.softmax(outputs, dim=1).cpu().numpy()
+            predictions = torch.argmax(outputs, dim=1).cpu().numpy()
+            true_classes = labels.cpu().numpy()
+            y_true.extend(true_classes)
+            y_pred.extend(predictions)
+            y_probas.extend(probabilities)
+
+    # Convert results to NumPy arrays
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    y_probas = np.array(y_probas)
+
+    # Compute evaluation metrics
+    accuracy = accuracy_score(y_true, y_pred)
+    balanced_acc = balanced_accuracy_score(y_true, y_pred)
+    roc_auc = roc_auc_score(y_true, y_probas, multi_class='ovr')
+
+    test_time = time.time() - start_time
+
+    # Save metrics to file
+    results_path = os.path.join(save_dir, "accuracy_results.json_test.txt")
+    with open(results_path, "w") as f:
+        f.write(f"Accuracy: {accuracy:.4f}\n")
+        f.write(f"Balanced Accuracy: {balanced_acc:.4f}\n")
+        f.write(f"ROC AUC: {roc_auc:.4f}\n")
+        f.write(f"Training Time: {train_time:.2f} sec\n")
+        f.write(f"Testing Time: {test_time:.2f} sec\n")
+
+    print("\nJSON Test Evaluation results saved!")
+
+    # Plot ROC Curve
+    class_names = ["Density A", "Density B", "Density C", "Density D"]
+    plt.figure(figsize=(8, 6))
+    for i in range(4):
+        fpr, tpr, _ = roc_curve(y_true == i, y_probas[:, i])
+        auc_score = auc(fpr, tpr)
+        plt.plot(fpr, tpr, label=f'{class_names[i]} (AUC = {auc_score:.2f})')
+
+    # Plot random line
+    plt.plot([0, 1], [0, 1], 'k--', label='Random (AUC = 0.50)')
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve (JSON Test Set)")
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    roc_curve_path = os.path.join(save_dir, "roc_curve_json_test.png")
+    plt.savefig(roc_curve_path)
+    plt.close()
+
+    print(f"\nROC Curve saved at: {roc_curve_path}")
+
+    # Plot Confusion Matrix
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+    plt.title("Confusion Matrix (JSON Test Set)")
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.xticks(rotation=30)
+    plt.yticks(rotation=30)
+    conf_matrix_path = os.path.join(save_dir, "confusion_matrix_json_test.png")
     plt.savefig(conf_matrix_path)
     plt.close()
 

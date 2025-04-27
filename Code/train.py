@@ -12,9 +12,13 @@ import os
 import datetime
 import matplotlib.pyplot as plt
 from test import evaluate_model
+from test import evaluate_model_on_json
+
+
 
 # Early stopping parameters
-PATIENCE = 1000  # Number of epochs to wait before stopping if no improvement
+PATIENCE = 10  # Number of epochs to wait before stopping if no improvement
+json_path = r"/home/christian/Breast_Density_Classification/breast_density_classification/scripts/configs/my_dataset.json"
 
 def train_model():
     # Load datasets
@@ -118,7 +122,11 @@ def train_model():
 
     # Save plots and evaluate
     save_results(train_loss_history, val_loss_history, total_training_time, trial_dir)
-    evaluate_model(model, trial_dir, total_training_time)
+
+
+    ###### Comment one evaluation model
+    # evaluate_model(model, trial_dir, total_training_time)
+    evaluate_model_on_json(model,json_path, trial_dir, total_training_time)
 
 
 def save_results(train_loss_history, val_loss_history, train_time, trial_dir=None):

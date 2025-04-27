@@ -4,31 +4,36 @@ import torchvision.models as models
 
 class BreastCancerResNet18(nn.Module):
     """
-    Custom ResNet18 for breast cancer classification (4 classes).
+    Custom ResNet18 for breast cancer classification with partial backbone freezing.
     """
 
     def __init__(self, pretrained=True):
         super(BreastCancerResNet18, self).__init__()
 
-        # Load pre-trained ResNet18
+        # Load ResNet18 with pre-trained weights
         self.resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None)
 
-        # Freeze entire backbone
+        # Freeze all layers initially
         for param in self.resnet.parameters():
             param.requires_grad = False
 
-        # Re-enable training only for the new classification head
+        """# Unfreeze the deeper layers (layer4 and fc)
+        for param in self.resnet.layer4.parameters():
+            param.requires_grad = True"""
+
+        # Get the number of features from the original FC layer
         num_features = self.resnet.fc.in_features
 
+        # Replace the FC head with custom classification layers and dropout
         self.resnet.fc = nn.Sequential(
             nn.Linear(num_features, 1024),
             nn.Dropout(0.5),
             nn.Linear(1024, 512),
             nn.Dropout(0.5),
-            nn.Linear(512, 4)  # 4-class output
+            nn.Linear(512, 4)  # 4 output classes
         )
 
-        # Ensure new fc layers are trainable
+        # Unfreeze the new FC layers
         for param in self.resnet.fc.parameters():
             param.requires_grad = True
 
